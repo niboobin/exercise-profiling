@@ -1,5 +1,6 @@
 package com.advpro.profiling.tutorial.service;
 
+import com.advpro.profiling.tutorial.model.Course;
 import com.advpro.profiling.tutorial.model.Student;
 import com.advpro.profiling.tutorial.model.StudentCourse;
 import com.advpro.profiling.tutorial.repository.StudentCourseRepository;
@@ -10,7 +11,8 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
+import java.util.Map;
+import java.util.HashMap;
 /**
  * @author muhammad.khadafi
  */
@@ -25,14 +27,25 @@ public class StudentService {
 
     public List<StudentCourse> getAllStudentsWithCourses() {
         List<Student> students = studentRepository.findAll();
+        Map<Long, List<Course>> studentCoursesMap = new HashMap<>();
+        for (Student student : students) {
+            List<StudentCourse> studentCourses = studentCourseRepository.findByStudentId(student.getId());
+            List<Course> courses = new ArrayList<>();
+            for (StudentCourse studentCourse : studentCourses) {
+                courses.add(studentCourse.getCourse());
+            }
+            studentCoursesMap.put(student.getId(), courses);
+        }
         List<StudentCourse> studentCourses = new ArrayList<>();
         for (Student student : students) {
-            List<StudentCourse> studentCoursesByStudent = studentCourseRepository.findByStudentId(student.getId());
-            for (StudentCourse studentCourseByStudent : studentCoursesByStudent) {
-                StudentCourse studentCourse = new StudentCourse();
-                studentCourse.setStudent(student);
-                studentCourse.setCourse(studentCourseByStudent.getCourse());
-                studentCourses.add(studentCourse);
+            List<Course> coursesList = studentCoursesMap.get(student.getId());
+            if(coursesList != null) {
+                for (Course course : coursesList) {
+                    StudentCourse studentCourse = new StudentCourse();
+                    studentCourse.setStudent(student);
+                    studentCourse.setCourse(course);
+                    studentCourses.add(studentCourse);
+                }
             }
         }
         return studentCourses;
@@ -53,11 +66,13 @@ public class StudentService {
 
     public String joinStudentNames() {
         List<Student> students = studentRepository.findAll();
-        String result = "";
+        StringBuilder result = new StringBuilder();
         for (Student student : students) {
-            result += student.getName() + ", ";
+            result.append(student.getName()).append(", ");
         }
-        return result.substring(0, result.length() - 2);
+        if (result.length() > 0) {
+            result.delete(result.length() - 2, result.length());
+        }
+        return result.toString();
     }
 }
-
